@@ -1,70 +1,50 @@
-<#
-.SYNOPSIS
-    Convert a DOCX file to PDF using Microsoft Word COM automation.
-
-.DESCRIPTION
-    This script opens a .docx file in Microsoft Word (via COM), exports it as
-    a PDF, and optionally opens the resulting PDF. Requires Microsoft Word to
-    be installed on the system.
-
-.PARAMETER InputPath
-    Path to the input .docx file.
-
-.PARAMETER OutputPath
-    (Optional) Path for the output .pdf file. Defaults to the same directory
-    and name as the input file with a .pdf extension.
-
-.PARAMETER Open
-    (Optional) If specified, opens the resulting PDF after conversion.
-
-.EXAMPLE
-    .\docx2pdf.ps1 -InputPath "C:\docs\report.docx"
-
-.EXAMPLE
-    .\docx2pdf.ps1 -InputPath "report.docx" -OutputPath "output.pdf" -Open
-#>
-
 param(
-    [Parameter(Mandatory=$true, Position=0)]
-    [string]$InputPath,
+    [Parameter(Position=0)]
+    [string]$DocxPath,
 
-    [Parameter(Mandatory=$false, Position=1)]
-    [string]$OutputPath,
-
-    [switch]$Open
+    [Parameter(Position=1)]
+    [string]$PdfPath
 )
 
-$ErrorActionPreference = "Stop"
-
-# Resolve full paths
-$InputPath = (Resolve-Path $InputPath).Path
-
-if (-not $OutputPath) {
-    $OutputPath = [System.IO.Path]::ChangeExtension($InputPath, ".pdf")
-} else {
-    $OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
-}
-
-if (-not (Test-Path $InputPath)) {
-    Write-Error "Input file not found: $InputPath"
+if (-not $DocxPath) {
+    Write-Host "Usage: docx2pdf <file.docx> [output.pdf]"
+    Write-Host ""
+    Write-Host "Converts a DOCX file to PDF using Microsoft Word, then opens it."
+    Write-Host "If no output path is given, saves PDF next to the DOCX file."
     exit 1
 }
 
-Write-Host "Converting: $InputPath"
-Write-Host "       To: $OutputPath"
+$DocxPath = (Resolve-Path $DocxPath -ErrorAction SilentlyContinue).Path
+if (-not $DocxPath -or -not (Test-Path $DocxPath)) {
+    Write-Host "Error: File not found: $DocxPath"
+    exit 1
+}
+
+if ([IO.Path]::GetExtension($DocxPath) -ne ".docx") {
+    Write-Host "Error: Input file must be a .docx file"
+    exit 1
+}
+
+if (-not $PdfPath) {
+    $PdfPath = [IO.Path]::ChangeExtension($DocxPath, ".pdf")
+} else {
+    $PdfPath = [IO.Path]::GetFullPath($PdfPath)
+}
+
+Write-Host "Converting: $DocxPath"
+Write-Host "       To: $PdfPath"
 
 $word = New-Object -ComObject Word.Application
 $word.Visible = $false
 $word.DisplayAlerts = 0
-
 try {
-    $doc = $word.Documents.Open($InputPath)
-    # 17 = wdExportFormatPDF
-    $doc.ExportAsFixedFormat($OutputPath, 17, $false, 0, 0, 0, 0, 0, $false, $false, 0, $false, $true, $false)
+    $doc = $word.Documents.Open($DocxPath)
+    $doc.SaveAs($PdfPath, 17)
     $doc.Close($false)
-    Write-Host "Conversion successful."
+    Write-Host "Conversion complete."
 } catch {
-    Write-Error "Conversion failed: $($_.Exception.Message)"
+    Write-Host "Error: $_"
+    Write-Host "Is Microsoft Word installed?"
     exit 1
 } finally {
     $word.Quit()
@@ -73,6 +53,5 @@ try {
     [System.GC]::WaitForPendingFinalizers()
 }
 
-if ($Open) {
-    Start-Process $OutputPath
-}
+Write-Host "Opening: $PdfPath"
+Start-Process $PdfPath

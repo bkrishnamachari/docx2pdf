@@ -1,45 +1,47 @@
 # docx2pdf
 
-A simple CLI tool to convert DOCX files to PDF using Microsoft Word COM automation on Windows.
+A simple Windows CLI tool that converts DOCX files to PDF using Microsoft Word's built-in PDF export, then opens the result.
 
 ## Requirements
 
-- Windows with Microsoft Word installed
-- PowerShell 5.1+
+- Windows
+- Microsoft Word (uses COM automation)
+- PowerShell
+
+## Installation
+
+1. Clone or download this repo
+2. Copy `docx2pdf.bat` and `docx2pdf.ps1` to a directory in your PATH (e.g., `%USERPROFILE%\bin`)
+
+```cmd
+git clone https://github.com/bkrishnamachari/docx2pdf.git
+copy docx2pdf\docx2pdf.bat %USERPROFILE%\bin\
+copy docx2pdf\docx2pdf.ps1 %USERPROFILE%\bin\
+```
 
 ## Usage
 
-### Standalone PowerShell Script
-
-```powershell
-# Basic conversion (PDF saved alongside the DOCX)
-.\docx2pdf.ps1 -InputPath "document.docx"
-
-# Specify output path
-.\docx2pdf.ps1 -InputPath "document.docx" -OutputPath "output.pdf"
-
-# Convert and open the PDF
-.\docx2pdf.ps1 -InputPath "document.docx" -Open
+```cmd
+docx2pdf report.docx                # converts to report.pdf and opens it
+docx2pdf report.docx output.pdf     # converts to specific output path and opens it
 ```
 
-### Claude Code Skill
+## How it works
 
-The `docx2pdf.md` file can be used as a [Claude Code](https://claude.ai/claude-code) custom slash command. Copy it to `~/.claude/commands/` to enable the `/docx2pdf` command:
+The tool uses Microsoft Word's COM automation interface via PowerShell to open the DOCX file and save it as PDF (format code 17). This produces identical output to using Word's "Save as PDF" manually. After conversion, the PDF is automatically opened with your default PDF viewer.
 
+The COM objects are properly released after conversion to prevent memory leaks.
+
+## Claude Code Skill
+
+A Claude Code slash command is included in `claude-skill/docx2pdf.md`. To install it:
+
+```cmd
+copy claude-skill\docx2pdf.md %USERPROFILE%\.claude\commands\
 ```
-cp docx2pdf.md ~/.claude/commands/
-```
 
-Then in Claude Code:
-
-```
-/docx2pdf path/to/document.docx
-```
-
-## How It Works
-
-The tool uses Microsoft Word's COM automation interface to open a DOCX file and export it as PDF. This produces high-fidelity output since Word itself handles the rendering, preserving all formatting, fonts, and layout exactly as Word would print them.
+Then use `/docx2pdf path\to\file.docx` from any Claude Code session.
 
 ## License
 
-PolyForm Noncommercial License 1.0.0 - See [LICENSE.md](LICENSE.md)
+PolyForm Noncommercial 1.0.0 - see [LICENSE](LICENSE) for details.
